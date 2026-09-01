@@ -146,14 +146,21 @@
   .pop-item:active{background:var(--line)}
   .pop-item.danger{color:#d4847a}
 
-  /* 密码显示开关 */
+  /* 密码显示开关：图标做输入框背景，天然与文字对齐 */
   .pwd-wrap{position:relative;margin-bottom:10px}
-  .pwd-wrap input{width:100%;margin-bottom:0;padding-right:64px}
+  .pwd-wrap input{
+    width:100%;margin:0;padding-right:44px;box-sizing:border-box;
+    background-repeat:no-repeat !important;
+    background-position:right 14px center !important;
+    background-size:18px 18px !important;
+    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%239aa89e' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z'/><circle cx='12' cy='12' r='3.2'/></svg>") !important;
+  }
+  .pwd-wrap input.showing{
+    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%239aa89e' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M9.9 9.9a3 3 0 0 0 4.2 4.2'/><path d='M10.7 5.1A10.4 10.4 0 0 1 12 5c7 0 10 7 10 7a13.2 13.2 0 0 1-1.7 2.7'/><path d='M6.6 6.6A13.5 13.5 0 0 0 2 12s3.5 7 10 7a9.7 9.7 0 0 0 5.4-1.6'/><line x1='3' y1='3' x2='21' y2='21'/></svg>") !important;
+  }
   .pwd-toggle{
-    position:absolute;right:10px;top:50%;transform:translateY(-50%);
-    border:none;background:var(--line);color:var(--ink);
-    border-radius:8px;padding:4px 9px;font-size:12px;cursor:pointer;font-weight:600;
-    font-family:inherit;
+    position:absolute;top:0;bottom:0;right:0;width:44px;
+    border:none;background:transparent;cursor:pointer;padding:0;
   }
 
   .toast{
@@ -221,7 +228,7 @@
   .auth-card .sub{color:var(--sub);font-size:13px;margin-bottom:22px}
   .auth-card input{
     width:100%;border:1.5px solid var(--line);border-radius:12px;
-    padding:12px 14px;font-size:15px;background:#fbfdfc;color:var(--ink);
+    padding:12px 14px;font-size:15px;background-color:#fbfdfc;color:var(--ink);
     outline:none;margin-bottom:10px;transition:border-color .15s;
   }
   .auth-card input:focus{border-color:#7fc9a8}
@@ -234,8 +241,9 @@
   .auth-card .btn.ghost{background:transparent;color:var(--sub);font-weight:600;margin-top:8px}
   .auth-card .err{color:#e08a8a;font-size:12px;min-height:16px;margin-bottom:6px}
   .auth-card .switch-user{margin-top:18px;font-size:12px;color:var(--sub)}
-  .who{font-size:13px;color:var(--sub);cursor:pointer;padding:4px 10px;border-radius:14px;background:var(--line)}
-  .who b{color:var(--ink);font-weight:600}
+  .who{display:inline-flex;align-items:center;gap:6px;padding:3px 12px 3px 4px;border-radius:16px;background:var(--line);font-size:13px;max-width:120px}
+  .who .avatar{width:22px;height:22px;border-radius:50%;background:#5fb88a;color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0}
+  .who b{color:var(--ink);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 
   @media(min-width:600px){
     .input-area{border-radius:20px 20px 0 0}
@@ -317,22 +325,23 @@
     <input id="authName" placeholder="用户名" autocomplete="off" maxlength="12">
     <div class="pwd-wrap">
       <input id="authPass" type="password" placeholder="密码" maxlength="20">
-      <button type="button" class="pwd-toggle" id="pwdToggle">显示</button>
+      <button type="button" class="pwd-toggle" id="pwdToggle" aria-label="显示/隐藏密码"></button>
     </div>
     <div class="err" id="authErr"></div>
     <button class="btn primary" id="loginBtn">登录</button>
     <button class="btn ghost" id="regBtn">没有账号？注册</button>
     <div class="switch-user">多人共用一台设备时，每人各自注册账号，账本互不可见</div>
+    <div style="font-size:11px;color:#b9c6bd;margin-top:10px">v12</div>
   </div>
 </div>
 
 <script>
 const CATS = [
-  {key:'衣', name:'衣物', color:'var(--c衣)', emoji:'👗'},
+  {key:'衣', name:'衣物', color:'var(--c衣)', emoji:'👔'},
   {key:'食', name:'餐饮', color:'var(--c食)', emoji:'🍱'},
   {key:'住', name:'居住', color:'var(--c住)', emoji:'🏠'},
   {key:'行', name:'交通', color:'var(--c行)', emoji:'🚌'},
-  {key:'用', name:'日用', color:'var(--c用)', emoji:'🧴'},
+  {key:'用', name:'日用', color:'var(--c用)', emoji:'🛒'},
 ];
 const CAT_MAP = Object.fromEntries(CATS.map(c=>[c.key,c]));
 
@@ -392,7 +401,7 @@ function doRegister(){
 }
 function enterApp(){
   document.getElementById('auth').style.display='none';
-  document.getElementById('who').innerHTML='👤 <b>'+currentUser+'</b>';
+  document.getElementById('who').innerHTML='<span class="avatar">'+currentUser.charAt(0).toUpperCase()+'</span><b>'+currentUser+'</b>';
   data = JSON.parse(localStorage.getItem(dataKey())||'[]');
   const d=new Date(); view={y:d.getFullYear(),m:d.getMonth()};
   selDayKey=dayKeyOf(d.getFullYear(),d.getMonth(),d.getDate());
@@ -636,12 +645,11 @@ document.getElementById('regBtn').addEventListener('click',doRegister);
 ['authName','authPass'].forEach(id=>{
   document.getElementById(id).addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});
 });
-// 密码显示/隐藏（文字开关）
+// 密码显示/隐藏（睁眼/闭眼背景图标）
 document.getElementById('pwdToggle').addEventListener('click',()=>{
   const p=document.getElementById('authPass');
-  const t=document.getElementById('pwdToggle');
-  if(p.type==='password'){ p.type='text'; t.textContent='隐藏'; }
-  else{ p.type='password'; t.textContent='显示'; }
+  if(p.type==='password'){ p.type='text'; p.classList.add('showing'); }
+  else{ p.type='password'; p.classList.remove('showing'); }
 });
 // 齿轮菜单
 const pop=document.getElementById('popover');
