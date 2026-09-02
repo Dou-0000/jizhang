@@ -362,7 +362,7 @@ function guessCat(desc){
 }
 
 // ===== Supabase 云端账号 + 数据 =====
-const SUPA_URL='https://mbxeqzjfdffqrmrulihf.supabase.co';
+const SUPA_URL='https://mbxeqzjfdfirqmrulihf.supabase.co';
 const SUPA_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1ieGVxempmZGZpcnFtcnVsaWhmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODgyODQ4MDMsImV4cCI6MjEwMzg2MDgwM30.LdwSoDBXrHcopXMeETBxuntU91hPrvxHMzq9AXav2lM';
 let sb=null, currentUser=null;
 try{ sb = window.supabase.createClient(SUPA_URL, SUPA_KEY); }catch(e){ console.warn('supabase init failed',e); }
