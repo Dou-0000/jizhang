@@ -49,7 +49,14 @@
   }
   .hero .cap{font-size:13px;opacity:.85}
   .hero .amt{font-size:34px;font-weight:800;margin-top:4px;letter-spacing:.5px}
-  .hero .row{display:flex;justify-content:space-between;margin-top:14px;font-size:13px;opacity:.9}
+  .hero .grid3{display:grid;grid-template-columns:1fr auto 1fr;align-items:baseline;gap:4px 12px;margin-top:6px}
+  .hero .grid3 .l{justify-self:start}
+  .hero .grid3 .c{justify-self:start;text-align:left}
+  .hero .grid3 .r{justify-self:end}
+  .hero .grid3 .big{align-self:start}
+  .hero .grid3 .foot{font-size:13px;opacity:.9;white-space:nowrap;margin-top:8px}
+  .hero .lab{font-size:12px;opacity:.85}
+  .hero .amt2{font-size:24px;font-weight:800;margin-top:2px;font-variant-numeric:tabular-nums;white-space:nowrap}
   .hero .row span b{font-weight:700}
 
   /* 分类条 */
@@ -116,8 +123,16 @@
   /* 当前记账日指示 */
   .rec-day{
     display:flex;align-items:center;justify-content:center;gap:8px;
-    font-size:12px;color:var(--sub);margin-bottom:10px;flex-wrap:wrap;
+    font-size:12px;color:var(--sub);margin-bottom:8px;flex-wrap:wrap;
   }
+
+  /* 支出/收入 切换 */
+  .type-seg{display:flex;background:var(--line);border-radius:10px;padding:3px;margin-bottom:8px}
+  .type-seg .type-btn{
+    flex:1;border:none;background:transparent;color:var(--sub);padding:6px;font-size:13px;
+    font-weight:600;border-radius:8px;cursor:pointer;transition:all .15s;
+  }
+  .type-seg .type-btn.active{background:#fff;color:#3a8b5f}
   .rec-day b{color:var(--ink);font-weight:700}
   .rec-day .tag{
     background:#e7f5ec;color:#3a8b5f;border-radius:12px;padding:3px 10px;font-weight:600;font-size:12px;
@@ -197,6 +212,8 @@
   .cal .cell .a{font-size:10px;margin-top:2px;font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap}
   .cal .cell.has .a{ }
   .cal .cell.sel .a,.cal .cell.sel .d{color:#fff}
+  .cal .cell .d .inmark{color:#3a8b5f;font-size:11px;margin-left:1px;font-weight:800;vertical-align:top}
+  .cal .cell.sel .d .inmark{color:#d4f0e2}
   .cal-legend{display:flex;justify-content:center;gap:14px;font-size:11px;color:var(--sub);margin-top:10px}
   .cal-legend .sw{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:4px;vertical-align:middle}
 
@@ -205,6 +222,7 @@
   .day-panel .ph{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px}
   .day-panel .ph .t{font-size:14px;font-weight:700}
   .day-panel .ph .s{font-size:15px;font-weight:800;font-variant-numeric:tabular-nums}
+  .day-panel .mini-row{display:flex;justify-content:space-between;font-size:11px;color:var(--sub);background:var(--line);border-radius:8px;padding:6px 10px;margin-bottom:10px}
   .day-panel .cat-row{display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-top:1px solid var(--line);font-size:13px}
   .day-panel .cat-row:first-of-type{border-top:none}
   .day-panel .cat-row .l{display:flex;align-items:center;gap:7px}
@@ -271,17 +289,24 @@
   </div>
 
   <div class="hero">
-    <div class="cap">本月支出</div>
-    <div class="amt" id="totalAmt">¥0.00</div>
-    <div class="row">
-      <span>笔数 <b id="cnt">0</b></span>
-      <span>日均 <b id="avg">¥0.00</b></span>
+    <div class="cap">本月收支</div>
+    <div class="grid3">
+      <div class="l big"><div class="lab">支出</div><div class="amt2" id="heroOut">¥0.00</div></div>
+      <div class="c big"><div class="lab">收入</div><div class="amt2" id="heroIn">¥0.00</div></div>
+      <div class="r big"></div>
+      <div class="l foot">结余 <b id="heroNet">¥0.00</b></div>
+      <div class="c foot">笔数 <b id="cnt">0</b></div>
+      <div class="r foot">日均 <b id="avg">¥0.00</b></div>
     </div>
   </div>
 
   <div class="bars">
-    <h3>分类占比</h3>
+    <h3>支出分类</h3>
     <div id="barList"></div>
+  </div>
+
+  <div class="bars" id="barIncome" style="display:none">
+    <div id="barIncomeInner"></div>
   </div>
 
   <div class="seg">
@@ -306,13 +331,18 @@
 
 <div class="input-area">
   <div class="rec-day" id="recDay"></div>
+  <div class="type-seg">
+    <button class="type-btn active" data-type="out">支出</button>
+    <button class="type-btn" data-type="in">收入</button>
+  </div>
   <div class="chips" id="chips"></div>
   <input type="file" id="importFile" accept="application/json,.json" hidden>
   <div class="input-row">
-    <input id="ipt" placeholder="超市21.2  或  午餐 25" autocomplete="off">
+    <input id="ipt" placeholder="超市21.2  或  工资5000" autocomplete="off">
     <button class="add-btn" id="addBtn">记一笔</button>
   </div>
-  <div class="hint">默认自动归类；可点下方分类手动指定，再点取消</div>
+  <div class="hint" id="hintOut">支出默认自动归类，可点分类手动指定</div>
+  <div class="hint" id="hintIn" style="display:none">默认归到工资，可点分类选择收入来源</div>
 </div>
 
 <div class="toast" id="toast"></div>
@@ -344,6 +374,18 @@ const CATS = [
   {key:'用', name:'日用', color:'var(--c用)', emoji:'🛒'},
 ];
 const CAT_MAP = Object.fromEntries(CATS.map(c=>[c.key,c]));
+
+// 收入分类
+const INCATS = [
+  {key:'工资', name:'工资', color:'#5fb88a', emoji:'💰'},
+  {key:'奖金', name:'奖金', color:'#f0b86e', emoji:'🎁'},
+  {key:'兼职', name:'兼职', color:'#a08bd0', emoji:'🛠️'},
+  {key:'理财', name:'理财', color:'#7fa8e8', emoji:'📈'},
+  {key:'红包', name:'红包', color:'#e0909a', emoji:'🧧'},
+];
+const INCAT_MAP = Object.fromEntries(INCATS.map(c=>[c.key,c]));
+// 根据记录取分类对象（支出/收入）
+function catOf(r){ return r.type==='in' ? (INCAT_MAP[r.cat]||INCAT_MAP['工资']) : (CAT_MAP[r.cat]||CAT_MAP['用']); }
 
 // 关键词 -> 分类
 const RULES = [
@@ -428,7 +470,8 @@ async function enterApp(){
     localStorage.setItem(dataKey(), JSON.stringify(data));
     const d=new Date(); view={y:d.getFullYear(),m:d.getMonth()};
     selDayKey=dayKeyOf(d.getFullYear(),d.getMonth(),d.getDate());
-    render(); renderChips();
+    setType('out');
+    render();
   }catch(e){ showErr('初始化失败，请重试'); }
 }
 function showAuth(){
@@ -445,9 +488,9 @@ async function logout(){
 // 远程读写（带本地缓存兜底）。列名用 description（desc 是 SQL 保留字）
 async function remoteFetch(){
   try{
-    const {data:rows,error} = await sb.from('records').select('id,ts,description,amt,cat').eq('user_id',currentUser.id);
+    const {data:rows,error} = await sb.from('records').select('id,ts,description,amt,cat,type').eq('user_id',currentUser.id);
     if(error) throw error;
-    const arr=(rows||[]).map(r=>({id:r.id,ts:+r.ts,desc:r.description,amt:+r.amt,cat:r.cat}));
+    const arr=(rows||[]).map(r=>({id:r.id,ts:+r.ts,desc:r.description,amt:+r.amt,cat:r.cat,type:r.type||'out'}));
     localStorage.setItem(dataKey(), JSON.stringify(arr));
     return arr;
   }catch(e){
@@ -455,7 +498,7 @@ async function remoteFetch(){
   }
 }
 async function remoteInsert(rec){
-  try{ await sb.from('records').insert({id:rec.id,user_id:currentUser.id,ts:rec.ts,description:rec.desc,amt:rec.amt,cat:rec.cat}); }catch(e){}
+  try{ await sb.from('records').insert({id:rec.id,user_id:currentUser.id,ts:rec.ts,description:rec.desc,amt:rec.amt,cat:rec.cat,type:rec.type||'out'}); }catch(e){}
 }
 async function remoteDelete(id){
   try{ await sb.from('records').delete().eq('id',id).eq('user_id',currentUser.id); }catch(e){}
@@ -465,7 +508,7 @@ async function remoteDeleteAll(){
 }
 async function remoteUpsertAll(records){
   try{
-    const rows=records.map(r=>({id:r.id,user_id:currentUser.id,ts:r.ts,description:r.desc,amt:r.amt,cat:r.cat}));
+    const rows=records.map(r=>({id:r.id,user_id:currentUser.id,ts:r.ts,description:r.desc,amt:r.amt,cat:r.cat,type:r.type||'out'}));
     await sb.from('records').upsert(rows,{onConflict:'id'});
   }catch(e){}
 }
@@ -479,7 +522,8 @@ let view = (function(){
   const d=new Date(); return {y:d.getFullYear(), m:d.getMonth()};
 })();
 
-let selCat = 'auto'; // 默认自动归类
+let selCat = 'auto'; // 默认自动归类（支出）
+let modeType = 'out';  // 'out' 支出 | 'in' 收入
 
 // 工具
 function pad(n){return n<10?'0'+n:''+n;}
@@ -509,24 +553,29 @@ function render(){
     return d.getFullYear()===view.y && d.getMonth()===view.m;
   }).sort((a,b)=>b.ts-a.ts);
 
-  // 总览
-  const total = monthRecs.reduce((s,r)=>s+r.amt,0);
+  // 总览：支出 / 收入 大数字，结余为辅
+  const outTotal = monthRecs.filter(r=>r.type!=='in').reduce((s,r)=>s+r.amt,0);
+  const inTotal = monthRecs.filter(r=>r.type==='in').reduce((s,r)=>s+r.amt,0);
+  const net = inTotal - outTotal;
   const dim = daysInMonth(view.y,view.m);
   const todayD = new Date();
   const dCount = (view.y===todayD.getFullYear() && view.m===todayD.getMonth())
     ? todayD.getDate() : dim;
-  document.getElementById('totalAmt').textContent = '¥'+total.toFixed(2);
+  document.getElementById('heroOut').textContent='¥'+outTotal.toFixed(2);
+  document.getElementById('heroIn').textContent='¥'+inTotal.toFixed(2);
+  document.getElementById('heroNet').textContent=(net>=0?'+':'-')+'¥'+Math.abs(net).toFixed(2);
   document.getElementById('cnt').textContent = monthRecs.length;
-  document.getElementById('avg').textContent = '¥'+(total/(dCount||1)).toFixed(2);
+  document.getElementById('avg').textContent = '¥'+(outTotal/(dCount||1)).toFixed(2);
 
-  // 分类条
+  // 支出分类条
+  const outRecs = monthRecs.filter(r=>r.type!=='in');
   const sums = {}; CATS.forEach(c=>sums[c.key]=0);
-  monthRecs.forEach(r=>sums[r.cat]=(sums[r.cat]||0)+r.amt);
+  outRecs.forEach(r=>sums[r.cat]=(sums[r.cat]||0)+r.amt);
   const maxCat = Math.max(0.01, ...CATS.map(c=>sums[c.key]));
   const barList = document.getElementById('barList');
   barList.innerHTML = CATS.map(c=>{
     const v=sums[c.key];
-    const pct = total>0 ? (v/total*100) : 0;
+    const pct = outTotal>0 ? (v/outTotal*100) : 0;
     const w = (v/maxCat*100);
     return `<div class="bar-item">
       <div class="bar-top">
@@ -536,6 +585,26 @@ function render(){
       <div class="bar-track"><div class="bar-fill" style="width:${w}%;background:${c.color}"></div></div>
     </div>`;
   }).join('');
+
+  // 收入分类条（有收入时才显示）
+  const barInc=document.getElementById('barIncome');
+  if(inTotal>0){
+    const isums={}; INCATS.forEach(c=>isums[c.key]=0);
+    monthRecs.filter(r=>r.type==='in').forEach(r=>isums[r.cat]=(isums[r.cat]||0)+r.amt);
+    const iMax=Math.max(0.01,...INCATS.map(c=>isums[c.key]));
+    barInc.style.display='block';
+    barInc.innerHTML='<h3>收入构成</h3>'+INCATS.map(c=>{
+      const v=isums[c.key]; if(v<=0) return '';
+      const w=v/iMax*100, pct=inTotal>0?(v/inTotal*100):0;
+      return `<div class="bar-item">
+        <div class="bar-top">
+          <span><span class="dot" style="background:${c.color}"></span>${c.emoji} ${c.name}</span>
+          <span>¥${v.toFixed(2)} <span class="pct">${pct.toFixed(0)}%</span></span>
+        </div>
+        <div class="bar-track"><div class="bar-fill" style="width:${w}%;background:${c.color}"></div></div>
+      </div>`;
+    }).join('');
+  }else{ barInc.style.display='none'; barInc.innerHTML=''; }
 
   // 当前视图
   if(viewMode==='list') renderList();
@@ -564,7 +633,9 @@ function renderList(){
   const yday = (function(){const d=new Date();d.setDate(d.getDate()-1);return ymKey(d.getFullYear(),d.getMonth())+'-'+pad(d.getDate());})();
   listEl.innerHTML = Object.keys(groups).sort((a,b)=>a<b?1:-1).map(dk=>{
     const rs=groups[dk];
-    const dayTotal = rs.reduce((s,r)=>s+r.amt,0);
+    const dOut=rs.filter(r=>r.type!=='in').reduce((s,r)=>s+r.amt,0);
+    const dIn=rs.filter(r=>r.type==='in').reduce((s,r)=>s+r.amt,0);
+    const dayNet=dIn-dOut;
     let label;
     if(dk===today) label='今天';
     else if(dk===yday) label='昨天';
@@ -572,14 +643,16 @@ function renderList(){
       const [,mm,dd]=dk.split('-');
       label = (+mm)+'月'+(+dd)+'日';
     }
+    const dayStr = dIn>0 ? `收入¥${dIn.toFixed(2)} · 支出¥${dOut.toFixed(2)} · 结余¥${dayNet.toFixed(2)}` : `共 ¥${dOut.toFixed(2)}`;
     return `<div class="day-group">
-      <div class="day-title">${label} · 共 <b>¥${dayTotal.toFixed(2)}</b></div>
+      <div class="day-title">${label} · ${dayStr}</div>
       <div class="recs">${rs.map(r=>{
-        const c=CAT_MAP[r.cat]||CAT_MAP['用'];
+        const c=catOf(r);
+        const isIn=r.type==='in';
         return `<div class="rec">
           <div class="badge" style="background:${c.color}22;color:${c.color}">${c.emoji}</div>
-          <div class="info"><div class="desc">${r.desc||c.name}</div><div class="cat">${c.key}·${c.name}</div></div>
-          <div class="amt">¥${r.amt.toFixed(2)}</div>
+          <div class="info"><div class="desc">${r.desc||c.name}</div><div class="cat">${c.key}·${c.name}${isIn?' · 收入':''}</div></div>
+          <div class="amt" style="color:${isIn?'#3a8b5f':'inherit'}">${isIn?'+':'-'}¥${r.amt.toFixed(2)}</div>
           <button class="del" data-id="${r.id}" aria-label="删除">×</button>
         </div>`;
       }).join('')}</div>
@@ -590,23 +663,36 @@ function renderList(){
 // 分类芯片：默认自动归类，点某类=手动指定，再点一次=取消回自动
 function renderChips(){
   const el=document.getElementById('chips');
-  el.innerHTML = CATS.map(c=>`<button class="chip" data-cat="${c.key}">${c.emoji} ${c.key}</button>`).join('');
+  const list = modeType==='in' ? INCATS : CATS;
+  el.innerHTML = list.map(c=>`<button class="chip" data-cat="${c.key}">${c.emoji} ${c.key}</button>`).join('');
   [...el.querySelectorAll('.chip')].forEach(ch=>{
     ch.addEventListener('click',()=>{
       const k=ch.dataset.cat;
-      selCat = (selCat===k) ? 'auto' : k;   // 再点一次取消
+      // 支出/收入：再点取消都回 auto（无高亮）
+      selCat = (selCat===k) ? 'auto' : k;
       refreshChips();
     });
   });
   refreshChips();
 }
 function refreshChips(){
+  const map = modeType==='in' ? INCAT_MAP : CAT_MAP;
   document.querySelectorAll('.chip').forEach(x=>{
     const k=x.dataset.cat;
     const active = (k===selCat);           // selCat='auto' 时全不亮
     x.classList.toggle('active', active);
-    x.style.background = active ? CAT_MAP[k].color : '';
+    x.style.background = active ? map[k].color : '';
   });
+}
+function setType(t){
+  modeType=t;
+  selCat = 'auto';   // 支出/收入默认都不选（支出自动归类；收入默认归工资）
+  document.querySelectorAll('.type-btn').forEach(b=>{
+    b.classList.toggle('active', b.dataset.type===t);
+  });
+  document.getElementById('hintOut').style.display = t==='out' ? 'block' : 'none';
+  document.getElementById('hintIn').style.display = t==='in' ? 'block' : 'none';
+  renderChips();
 }
 
 // 日期：把日历选中的那天 + 当前时分合成时间戳（同一天补记按输入先后排序）
@@ -655,9 +741,11 @@ function addRec(){
   const amt=parseAmount(raw);
   if(amt==null){toast('没识别到金额哦');return;}
   const desc=rmAmount(raw);
-  const cat = selCat==='auto' ? guessCat(desc||raw) : selCat;
+  let cat;
+  if(modeType==='in'){ cat = (selCat==='auto') ? '工资' : selCat; }
+  else { cat = selCat==='auto' ? guessCat(desc||raw) : selCat; }
   const ts = pickRecordTs();
-  const rec={id:uid(),ts:ts,desc:desc,amt:amt,cat:cat};
+  const rec={id:uid(),ts:ts,desc:desc,amt:amt,cat:cat,type:modeType};
   data.push(rec);
   save();
   remoteInsert(rec); // 上云（失败不影响本地）
@@ -685,6 +773,10 @@ function toast(msg){
 // 事件
 document.getElementById('addBtn').addEventListener('click',addRec);
 document.getElementById('ipt').addEventListener('keydown',e=>{if(e.key==='Enter')addRec();});
+// 支出/收入 切换
+document.querySelectorAll('.type-btn').forEach(b=>{
+  b.addEventListener('click',()=>setType(b.dataset.type));
+});
 document.getElementById('recordList').addEventListener('click',e=>{
   const b=e.target.closest('.del');
   if(b) delRec(b.dataset.id);
@@ -748,6 +840,7 @@ function importData(file){
     else { toast('文件里没有记录数据'); return; }
     // 校验字段
     incoming=incoming.filter(r=>r && typeof r.amt==='number' && r.ts);
+    incoming.forEach(r=>{ if(r.type!=='in') r.type='out'; });
     if(incoming.length===0){ toast('没有有效记录'); return; }
     const mode = confirm(
       '检测到 '+incoming.length+' 条记录。\n\n' +
@@ -787,13 +880,14 @@ let selDayKey=null;      // 选中那一天（'YYYY-MM-DD'），默认今天
 function dayKeyOf(y,m,d){return y+'-'+pad(m+1)+'-'+pad(d);}
 
 function calMonthSums(){
-  // 当月每天的总支出
+  // 当月每天的支出与收入
   const sums={};
   data.forEach(r=>{
     const d=new Date(r.ts);
     if(d.getFullYear()===view.y && d.getMonth()===view.m){
       const dk=dayKeyOf(d.getFullYear(),d.getMonth(),d.getDate());
-      sums[dk]=(sums[dk]||0)+r.amt;
+      sums[dk]=sums[dk]||{out:0,in:0};
+      if(r.type==='in') sums[dk].in+=r.amt; else sums[dk].out+=r.amt;
     }
   });
   return sums;
@@ -816,7 +910,7 @@ function renderCalendar(){
   let startDow=first.getDay()-1; if(startDow<0) startDow=6;
   const dim=daysInMonth(y,m);
   const sums=calMonthSums();
-  const maxAmt=Math.max(1,...Object.values(sums)); // 当月最大单日支出，作深浅基准
+  const maxAmt=Math.max(1,...Object.values(sums).map(s=>s.out)); // 当月最大单日支出，作深浅基准
   const today=dayKeyOf(new Date().getFullYear(),new Date().getMonth(),new Date().getDate());
 
   // 按金额比例算颜色：花得越多越深。用 sqrt 非线性，让小额差异也明显
@@ -832,7 +926,9 @@ function renderCalendar(){
   for(let i=0;i<startDow;i++) html+='<div class="cell out"></div>';
   for(let d=1;d<=dim;d++){
     const dk=dayKeyOf(y,m,d);
-    const amt=sums[dk]||0;
+    const s=sums[dk]||{out:0,in:0};
+    const amt=s.out;
+    const hasIn=s.in>0;
     const cls=['cell'];
     if(amt>0) cls.push('has');
     if(dk===today) cls.push('today');
@@ -840,8 +936,8 @@ function renderCalendar(){
     const st = amt>0 ? tint(amt) : {bg:'',fg:''};
     const style=amt>0 ? `style="background:${st.bg};color:${st.fg}"` : '';
     html+=`<div class="${cls.join(' ')}" data-dk="${dk}" ${style}>
-      <div class="d">${d}</div>
-      <div class="a">${amt>0?'¥'+fmtAmt(amt):''}</div>
+      <div class="d">${d}${hasIn?'<span class="inmark">+</span>':''}</div>
+      <div class="a">${amt>0?'¥'+fmtAmt(amt):(hasIn?'收':'')}</div>
     </div>`;
   }
   grid.innerHTML=html;
@@ -877,23 +973,37 @@ function renderDayPanel(){
   else if(selDayKey===yday) label='昨天';
   else label=(+mS)+'月'+d+'日';
 
-  const total=dayRecs.reduce((s,r)=>s+r.amt,0);
+  const outTotal=dayRecs.filter(r=>r.type!=='in').reduce((s,r)=>s+r.amt,0);
+  const inTotal=dayRecs.filter(r=>r.type==='in').reduce((s,r)=>s+r.amt,0);
+  const net=inTotal-outTotal;
   const sums={}; CATS.forEach(c=>sums[c.key]=0);
-  dayRecs.forEach(r=>sums[r.cat]+=r.amt);
+  dayRecs.filter(r=>r.type!=='in').forEach(r=>sums[r.cat]+=r.amt);
+  const isums={}; INCATS.forEach(c=>isums[c.key]=0);
+  dayRecs.filter(r=>r.type==='in').forEach(r=>isums[r.cat]+=r.amt);
 
   el.innerHTML=`<div class="day-panel">
-    <div class="ph"><span class="t">${label} · 各类明细</span><span class="s">¥${total.toFixed(2)}</span></div>
+    <div class="ph">
+      <span class="t">${label} · 明细</span>
+      <span class="s">${net>=0?'+':'-'}¥${Math.abs(net).toFixed(2)}</span>
+    </div>
+    <div class="mini-row"><span>收入 ¥${inTotal.toFixed(2)}</span><span>支出 ¥${outTotal.toFixed(2)}</span><span>结余 ¥${net.toFixed(2)}</span></div>
     ${CATS.map(c=>`
       <div class="cat-row">
         <span class="l"><span class="dot" style="background:${c.color}"></span>${c.emoji} ${c.name}</span>
         <span class="v ${sums[c.key]===0?'zero':''}">¥${sums[c.key].toFixed(2)}</span>
       </div>`).join('')}
+    ${inTotal>0?INCATS.filter(c=>isums[c.key]>0).map(c=>`
+      <div class="cat-row">
+        <span class="l"><span class="dot" style="background:${c.color}"></span>${c.emoji} ${c.name}</span>
+        <span class="v" style="color:#3a8b5f">+¥${isums[c.key].toFixed(2)}</span>
+      </div>`).join(''):''}
     ${dayRecs.length?`<div class="items">
       ${dayRecs.map(r=>{
-        const c=CAT_MAP[r.cat]||CAT_MAP['用'];
+        const c=catOf(r);
         const tm=new Date(r.ts);
         const hh=pad(tm.getHours()),mm=pad(tm.getMinutes());
-        return `<div class="it"><span><b>${hh}:${mm}</b> ${r.desc||c.name} <span style="opacity:.6">${c.key}</span></span><span>¥${r.amt.toFixed(2)}</span></div>`;
+        const isIn=r.type==='in';
+        return `<div class="it"><span><b>${hh}:${mm}</b> ${r.desc||c.name} <span style="opacity:.6">${c.key}</span></span><span style="color:${isIn?'#3a8b5f':'inherit'}">${isIn?'+':'-'}¥${r.amt.toFixed(2)}</span></div>`;
       }).join('')}
     </div>`:'<div class="items" style="text-align:center;color:var(--sub);font-size:12px;padding-top:8px">这一天没有记录</div>'}
   </div>`;
