@@ -418,7 +418,14 @@ async function enterApp(){
     document.getElementById('auth').style.display='none';
     const name=nameOf(user.email);
     document.getElementById('who').innerHTML='<span class="avatar">'+name.charAt(0).toUpperCase()+'</span><b>'+displayName(user.email)+'</b>';
-    data = await remoteFetch();
+    // 合并：拉云端 + 把本地有但云端没有的补传上去（避免建表前记的数据丢失）
+    const cloud = await remoteFetch();
+    const local = JSON.parse(localStorage.getItem(dataKey())||'[]');
+    const cloudIds = new Set(cloud.map(r=>r.id));
+    const localOnly = local.filter(r=>!cloudIds.has(r.id));
+    if(localOnly.length) await remoteUpsertAll(localOnly);
+    data = cloud.concat(localOnly);
+    localStorage.setItem(dataKey(), JSON.stringify(data));
     const d=new Date(); view={y:d.getFullYear(),m:d.getMonth()};
     selDayKey=dayKeyOf(d.getFullYear(),d.getMonth(),d.getDate());
     render(); renderChips();
@@ -435,12 +442,12 @@ async function logout(){
   if(sb) await sb.auth.signOut();
 }
 
-// 远程读写（带本地缓存兜底）
+// 远程读写（带本地缓存兜底）。列名用 description（desc 是 SQL 保留字）
 async function remoteFetch(){
   try{
-    const {data:rows,error} = await sb.from('records').select('id,ts,desc,amt,cat').eq('user_id',currentUser.id);
+    const {data:rows,error} = await sb.from('records').select('id,ts,description,amt,cat').eq('user_id',currentUser.id);
     if(error) throw error;
-    const arr=(rows||[]).map(r=>({id:r.id,ts:+r.ts,desc:r.desc,amt:+r.amt,cat:r.cat}));
+    const arr=(rows||[]).map(r=>({id:r.id,ts:+r.ts,desc:r.description,amt:+r.amt,cat:r.cat}));
     localStorage.setItem(dataKey(), JSON.stringify(arr));
     return arr;
   }catch(e){
@@ -448,7 +455,7 @@ async function remoteFetch(){
   }
 }
 async function remoteInsert(rec){
-  try{ await sb.from('records').insert({id:rec.id,user_id:currentUser.id,ts:rec.ts,desc:rec.desc,amt:rec.amt,cat:rec.cat}); }catch(e){}
+  try{ await sb.from('records').insert({id:rec.id,user_id:currentUser.id,ts:rec.ts,description:rec.desc,amt:rec.amt,cat:rec.cat}); }catch(e){}
 }
 async function remoteDelete(id){
   try{ await sb.from('records').delete().eq('id',id).eq('user_id',currentUser.id); }catch(e){}
@@ -458,7 +465,7 @@ async function remoteDeleteAll(){
 }
 async function remoteUpsertAll(records){
   try{
-    const rows=records.map(r=>({id:r.id,user_id:currentUser.id,ts:r.ts,desc:r.desc,amt:r.amt,cat:r.cat}));
+    const rows=records.map(r=>({id:r.id,user_id:currentUser.id,ts:r.ts,description:r.desc,amt:r.amt,cat:r.cat}));
     await sb.from('records').upsert(rows,{onConflict:'id'});
   }catch(e){}
 }
