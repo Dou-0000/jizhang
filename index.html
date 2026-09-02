@@ -321,8 +321,8 @@
 <div class="auth" id="auth">
   <div class="auth-card">
     <h1>📒 记账本</h1>
-    <div class="sub">登录后开始记账</div>
-    <input id="authName" placeholder="用户名" autocomplete="off" maxlength="12">
+    <div class="sub">登录后开始记账（数据云端同步）</div>
+    <input id="authName" placeholder="邮箱" autocomplete="off">
     <div class="pwd-wrap">
       <input id="authPass" type="password" placeholder="密码" maxlength="20">
       <button type="button" class="pwd-toggle" id="pwdToggle" aria-label="显示/隐藏密码"></button>
@@ -330,10 +330,11 @@
     <div class="err" id="authErr"></div>
     <button class="btn primary" id="loginBtn">登录</button>
     <button class="btn ghost" id="regBtn">没有账号？注册</button>
-    <div class="switch-user">每个账号的账本互不可见，可放心各自记账</div>
+    <div class="switch-user">账号用邮箱注册，账本云端保存、互不可见</div>
   </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script>
 const CATS = [
   {key:'衣', name:'衣物', color:'var(--c衣)', emoji:'👔'},
@@ -360,59 +361,100 @@ function guessCat(desc){
   return '用'; // 默认归到日用
 }
 
-// ===== 账号系统 =====
-const USERS_KEY = 'jizhang_users';     // [{name, passHash}]
-const SESSION_KEY = 'jizhang_session';  // 当前登录用户名
-let currentUser = null;
+// ===== Supabase 云端账号 + 数据 =====
+const SUPA_URL='https://mbxeqzjfdffqrmrulihf.supabase.co';
+const SUPA_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1ieGVxempmZGZpcnFtcnVsaWhmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODgyODQ4MDMsImV4cCI6MjEwMzg2MDgwM30.LdwSoDBXrHcopXMeETBxuntU91hPrvxHMzq9AXav2lM';
+let sb=null, currentUser=null;
+try{ sb = window.supabase.createClient(SUPA_URL, SUPA_KEY); }catch(e){ console.warn('supabase init failed',e); }
 
-// 简易哈希（本地存储用，非真正安全加密；防偷看而非防黑客）
-function hash(s){
-  let h=5381; for(let i=0;i<s.length;i++){ h=((h<<5)+h)+s.charCodeAt(i); h|=0; }
-  return 'x'+h;
+function dataKey(){ return 'jizhang_data_'+(currentUser?currentUser.id:'guest'); }
+function showErr(msg){ document.getElementById('authErr').textContent=msg; }
+function friendlyErr(e){
+  const m=(e&&e.message||'')+'';
+  if(/Invalid login|credentials/i.test(m)) return '邮箱或密码错误';
+  if(/not confirmed|Email not confirmed/i.test(m)) return '邮箱未验证，请去邮箱点确认链接';
+  if(/already registered/i.test(m)) return '该邮箱已注册';
+  if(/rate limit/i.test(m)) return '操作太频繁，稍后再试';
+  return m;
 }
-function getUsers(){ return JSON.parse(localStorage.getItem(USERS_KEY)||'[]'); }
-function setUsers(u){ localStorage.setItem(USERS_KEY, JSON.stringify(u)); }
-function dataKey(){ return 'jizhang_data_'+currentUser; }
+function nameOf(email){ return (email||'用户').split('@')[0]; }
 
-function doLogin(){
-  const name=document.getElementById('authName').value.trim();
+async function doLogin(){
+  const email=document.getElementById('authName').value.trim();
   const pass=document.getElementById('authPass').value;
-  const err=document.getElementById('authErr');
-  if(!name||!pass){ err.textContent='请输入用户名和密码'; return; }
-  const u=getUsers().find(x=>x.name===name);
-  if(!u){ err.textContent='用户不存在，请先注册'; return; }
-  if(u.passHash!==hash(pass)){ err.textContent='密码错误'; return; }
-  currentUser=name;
-  localStorage.setItem(SESSION_KEY,name);
-  enterApp();
+  if(!email||!pass){ showErr('请输入邮箱和密码'); return; }
+  showErr('');
+  document.getElementById('loginBtn').textContent='登录中…';
+  const {error} = await sb.auth.signInWithPassword({email,password:pass});
+  document.getElementById('loginBtn').textContent='登录';
+  if(error){ showErr(friendlyErr(error)); return; }
+  // onAuthStateChange 会触发 enterApp
 }
-function doRegister(){
-  const name=document.getElementById('authName').value.trim();
+async function doRegister(){
+  const email=document.getElementById('authName').value.trim();
   const pass=document.getElementById('authPass').value;
-  const err=document.getElementById('authErr');
-  if(!name||!pass){ err.textContent='请输入用户名和密码'; return; }
-  if(name.length<2){ err.textContent='用户名至少2个字符'; return; }
-  if(getUsers().some(x=>x.name===name)){ err.textContent='该用户名已存在'; return; }
-  const u=getUsers(); u.push({name,passHash:hash(pass)}); setUsers(u);
-  currentUser=name;
-  localStorage.setItem(SESSION_KEY,name);
-  enterApp();
+  if(!email||!pass){ showErr('请输入邮箱和密码'); return; }
+  if(pass.length<6){ showErr('密码至少6位'); return; }
+  if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)){ showErr('邮箱格式不对'); return; }
+  showErr('');
+  document.getElementById('regBtn').textContent='注册中…';
+  const {data, error} = await sb.auth.signUp({email,password:pass});
+  document.getElementById('regBtn').textContent='没有账号？注册';
+  if(error){ showErr(friendlyErr(error)); return; }
+  if(data && data.session){ /* 邮箱确认关闭，直接进入，监听器会处理 */ }
+  else showErr('注册成功！请到邮箱点确认链接，然后回来登录');
 }
-function enterApp(){
-  document.getElementById('auth').style.display='none';
-  document.getElementById('who').innerHTML='<span class="avatar">'+currentUser.charAt(0).toUpperCase()+'</span><b>'+currentUser+'</b>';
-  data = JSON.parse(localStorage.getItem(dataKey())||'[]');
-  const d=new Date(); view={y:d.getFullYear(),m:d.getMonth()};
-  selDayKey=dayKeyOf(d.getFullYear(),d.getMonth(),d.getDate());
-  render(); renderChips();
+async function enterApp(){
+  try{
+    const {data:{user}} = await sb.auth.getUser();
+    if(!user){ showAuth(); return; }
+    currentUser = { id:user.id, email:user.email };
+    document.getElementById('auth').style.display='none';
+    const name=nameOf(user.email);
+    document.getElementById('who').innerHTML='<span class="avatar">'+name.charAt(0).toUpperCase()+'</span><b>'+name+'</b>';
+    data = await remoteFetch();
+    const d=new Date(); view={y:d.getFullYear(),m:d.getMonth()};
+    selDayKey=dayKeyOf(d.getFullYear(),d.getMonth(),d.getDate());
+    render(); renderChips();
+  }catch(e){ showErr('初始化失败，请重试'); }
 }
-function logout(){
-  currentUser=null;
-  localStorage.removeItem(SESSION_KEY);
+function showAuth(){
+  currentUser=null; data=[];
   document.getElementById('auth').style.display='flex';
   document.getElementById('authName').value='';
   document.getElementById('authPass').value='';
   document.getElementById('authErr').textContent='';
+}
+async function logout(){
+  if(sb) await sb.auth.signOut();
+}
+
+// 远程读写（带本地缓存兜底）
+async function remoteFetch(){
+  try{
+    const {data:rows,error} = await sb.from('records').select('id,ts,desc,amt,cat').eq('user_id',currentUser.id);
+    if(error) throw error;
+    const arr=(rows||[]).map(r=>({id:r.id,ts:+r.ts,desc:r.desc,amt:+r.amt,cat:r.cat}));
+    localStorage.setItem(dataKey(), JSON.stringify(arr));
+    return arr;
+  }catch(e){
+    return JSON.parse(localStorage.getItem(dataKey())||'[]');
+  }
+}
+async function remoteInsert(rec){
+  try{ await sb.from('records').insert({id:rec.id,user_id:currentUser.id,ts:rec.ts,desc:rec.desc,amt:rec.amt,cat:rec.cat}); }catch(e){}
+}
+async function remoteDelete(id){
+  try{ await sb.from('records').delete().eq('id',id).eq('user_id',currentUser.id); }catch(e){}
+}
+async function remoteDeleteAll(){
+  try{ await sb.from('records').delete().eq('user_id',currentUser.id); }catch(e){}
+}
+async function remoteUpsertAll(records){
+  try{
+    const rows=records.map(r=>({id:r.id,user_id:currentUser.id,ts:r.ts,desc:r.desc,amt:r.amt,cat:r.cat}));
+    await sb.from('records').upsert(rows,{onConflict:'id'});
+  }catch(e){}
 }
 
 // ===== 数据 =====
@@ -604,8 +646,10 @@ function addRec(){
   const desc=rmAmount(raw);
   const cat = selCat==='auto' ? guessCat(desc||raw) : selCat;
   const ts = pickRecordTs();
-  data.push({id:uid(),ts:ts,desc:desc,amt:amt,cat:cat});
+  const rec={id:uid(),ts:ts,desc:desc,amt:amt,cat:cat};
+  data.push(rec);
   save();
+  remoteInsert(rec); // 上云（失败不影响本地）
   // 跳到该记录所在月，并选中那一天
   const d=new Date(ts); view={y:d.getFullYear(),m:d.getMonth()};
   selDayKey=dayKeyOf(d.getFullYear(),d.getMonth(),d.getDate());
@@ -618,6 +662,7 @@ function addRec(){
 function delRec(id){
   data=data.filter(r=>r.id!==id);
   save();render();
+  remoteDelete(id); // 上云删除
 }
 
 function toast(msg){
@@ -666,7 +711,7 @@ document.getElementById('logoutBtn').addEventListener('click',()=>{
 function exportData(){
   if(!currentUser){ toast('请先登录'); return; }
   const payload={
-    app:'jizhang', ver:1, user:currentUser,
+    app:'jizhang', ver:1, user:currentUser.email,
     exported: new Date().toISOString(),
     records: data
   };
@@ -674,7 +719,7 @@ function exportData(){
   const url=URL.createObjectURL(blob);
   const a=document.createElement('a');
   a.href=url;
-  a.download='记账本_'+currentUser+'_'+todayDateStr()+'.json';
+  a.download='记账本_'+nameOf(currentUser.email)+'_'+todayDateStr()+'.json';
   document.body.appendChild(a);a.click();a.remove();
   URL.revokeObjectURL(url);
   toast('已导出 '+data.length+' 条记录');
@@ -704,14 +749,14 @@ function importData(file){
       const add=incoming.filter(r=>!ids.has(r.id));
       data=data.concat(add);
       result='合并完成，新增 '+add.length+' 条';
+      remoteUpsertAll(data);
     }else{ // 替换
       data=incoming.slice();
       result='已替换为 '+incoming.length+' 条';
+      remoteDeleteAll().then(()=>remoteUpsertAll(data));
     }
     save();
-    const d=new Date(incoming[0].ts); // 跳到最早记录附近
     render();
-    renderChips&&renderChips();
     toast(result);
   };
   reader.readAsText(file);
@@ -858,16 +903,15 @@ function switchMode(mode){
 document.getElementById('segCal').addEventListener('click',()=>switchMode('cal'));
 document.getElementById('segList').addEventListener('click',()=>switchMode('list'));
 
-// 自动恢复会话
-(function init(){
-  const saved=localStorage.getItem(SESSION_KEY);
-  if(saved && getUsers().some(x=>x.name===saved)){
-    currentUser=saved;
-    enterApp();
-    return;
+// 会话恢复 + 登录态监听
+let _entering=false;
+sb.auth.onAuthStateChange((event, session)=>{
+  if(session && (event==='INITIAL_SESSION'||event==='SIGNED_IN'||event==='TOKEN_REFRESHED')){
+    if(!_entering){ _entering=true; enterApp().finally(()=>{ _entering=false; }); }
+  }else if(event==='SIGNED_OUT'){
+    showAuth();
   }
-  document.getElementById('auth').style.display='flex';
-})();
+});
 </script>
 </body>
 </html>
