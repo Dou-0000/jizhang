@@ -90,12 +90,12 @@
     padding-bottom:calc(20px + env(safe-area-inset-bottom));
     max-width:560px;margin:0 auto;
   }
-  .chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
+  .chips{display:flex;flex-wrap:nowrap;gap:5px;margin-bottom:10px}
   .chips::-webkit-scrollbar{display:none}
   .chip{
-    border:none;border-radius:20px;padding:7px 14px;font-size:13px;cursor:pointer;
-    background:var(--card);color:var(--sub);font-weight:600;white-space:nowrap;
-    border:1.5px solid transparent;transition:all .15s;
+    flex:1 1 0;border:none;border-radius:10px;padding:7px 0;font-size:12px;cursor:pointer;
+    background:var(--card);color:var(--sub);font-weight:600;text-align:center;
+    border:1.5px solid transparent;transition:all .15s;min-width:0;overflow:hidden;
   }
   .chip.active{color:#fff;border-color:transparent}
   .input-row{display:flex;gap:8px;align-items:center}
@@ -312,7 +312,7 @@
     <input id="ipt" placeholder="超市21.2  或  午餐 25" autocomplete="off">
     <button class="add-btn" id="addBtn">记一笔</button>
   </div>
-  <div class="hint">点日历上的某天即为记账日；忘记账就点那天再输入</div>
+  <div class="hint">默认自动归类；可点下方分类手动指定，再点取消</div>
 </div>
 
 <div class="toast" id="toast"></div>
@@ -472,7 +472,7 @@ let view = (function(){
   const d=new Date(); return {y:d.getFullYear(), m:d.getMonth()};
 })();
 
-let selCat = '食'; // 当前选中分类（用于手动指定）
+let selCat = 'auto'; // 默认自动归类
 
 // 工具
 function pad(n){return n<10?'0'+n:''+n;}
@@ -580,28 +580,26 @@ function renderList(){
   }).join('');
 }
 
-// 分类芯片
+// 分类芯片：默认自动归类，点某类=手动指定，再点一次=取消回自动
 function renderChips(){
   const el=document.getElementById('chips');
-  el.innerHTML = CATS.map(c=>`<button class="chip" data-cat="${c.key}">${c.emoji} ${c.key}</button>`).join('')
-  + `<button class="chip" data-cat="auto">🤖 自动归类</button>`;
+  el.innerHTML = CATS.map(c=>`<button class="chip" data-cat="${c.key}">${c.emoji} ${c.key}</button>`).join('');
   [...el.querySelectorAll('.chip')].forEach(ch=>{
     ch.addEventListener('click',()=>{
-      selCat = ch.dataset.cat;
-      [...el.querySelectorAll('.chip')].forEach(x=>{
-        const k=x.dataset.cat;
-        x.classList.toggle('active', k===selCat);
-        if(k===selCat && k!=='auto'){
-          const cat=CAT_MAP[k];
-          x.style.background=cat.color;
-        }else{
-          x.style.background='';
-        }
-      });
+      const k=ch.dataset.cat;
+      selCat = (selCat===k) ? 'auto' : k;   // 再点一次取消
+      refreshChips();
     });
   });
-  // 默认选中自动
-  el.querySelector('[data-cat="auto"]').click();
+  refreshChips();
+}
+function refreshChips(){
+  document.querySelectorAll('.chip').forEach(x=>{
+    const k=x.dataset.cat;
+    const active = (k===selCat);           // selCat='auto' 时全不亮
+    x.classList.toggle('active', active);
+    x.style.background = active ? CAT_MAP[k].color : '';
+  });
 }
 
 // 日期：把日历选中的那天 + 当前时分合成时间戳（同一天补记按输入先后排序）
