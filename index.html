@@ -90,7 +90,7 @@
     padding-bottom:calc(20px + env(safe-area-inset-bottom));
     max-width:560px;margin:0 auto;
   }
-  .chips{display:flex;gap:7px;margin-bottom:10px;overflow-x:auto;padding-bottom:2px;scrollbar-width:none}
+  .chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
   .chips::-webkit-scrollbar{display:none}
   .chip{
     border:none;border-radius:20px;padding:7px 14px;font-size:13px;cursor:pointer;
@@ -380,9 +380,9 @@ function friendlyErr(e){
 function nameOf(email){ return (email||'用户').split('@')[0]; }
 function displayName(email){
   let n=nameOf(email);
-  // 只取前6个字符，避免顶部被撑爆；中文/英文都适用
+  // 只取前4个字符，避免顶部被撑爆
   const nfc=Array.from(n);
-  return nfc.length>6 ? nfc.slice(0,6).join('')+'…' : n;
+  return nfc.length>4 ? nfc.slice(0,4).join('')+'…' : n;
 }
 
 async function doLogin(){
@@ -584,7 +584,7 @@ function renderList(){
 function renderChips(){
   const el=document.getElementById('chips');
   el.innerHTML = CATS.map(c=>`<button class="chip" data-cat="${c.key}">${c.emoji} ${c.key}</button>`).join('')
-  + `<button class="chip" data-cat="auto">🤖 自动</button>`;
+  + `<button class="chip" data-cat="auto">🤖 自动归类</button>`;
   [...el.querySelectorAll('.chip')].forEach(ch=>{
     ch.addEventListener('click',()=>{
       selCat = ch.dataset.cat;
