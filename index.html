@@ -586,25 +586,24 @@ function render(){
     </div>`;
   }).join('');
 
-  // 收入分类条（有收入时才显示）
+  // 收入分类条（常驻显示，和支出分类并排）
   const barInc=document.getElementById('barIncome');
-  if(inTotal>0){
-    const isums={}; INCATS.forEach(c=>isums[c.key]=0);
-    monthRecs.filter(r=>r.type==='in').forEach(r=>isums[r.cat]=(isums[r.cat]||0)+r.amt);
-    const iMax=Math.max(0.01,...INCATS.map(c=>isums[c.key]));
-    barInc.style.display='block';
-    barInc.innerHTML='<h3>收入构成</h3>'+INCATS.map(c=>{
-      const v=isums[c.key]; if(v<=0) return '';
-      const w=v/iMax*100, pct=inTotal>0?(v/inTotal*100):0;
-      return `<div class="bar-item">
-        <div class="bar-top">
-          <span><span class="dot" style="background:${c.color}"></span>${c.emoji} ${c.name}</span>
-          <span>¥${v.toFixed(2)} <span class="pct">${pct.toFixed(0)}%</span></span>
-        </div>
-        <div class="bar-track"><div class="bar-fill" style="width:${w}%;background:${c.color}"></div></div>
-      </div>`;
-    }).join('');
-  }else{ barInc.style.display='none'; barInc.innerHTML=''; }
+  const isums={}; INCATS.forEach(c=>isums[c.key]=0);
+  monthRecs.filter(r=>r.type==='in').forEach(r=>isums[r.cat]=(isums[r.cat]||0)+r.amt);
+  const iMax=Math.max(0.01,...INCATS.map(c=>isums[c.key]));
+  barInc.style.display='block';
+  barInc.innerHTML='<h3>收入分类</h3>'+INCATS.map(c=>{
+    const v=isums[c.key];
+    const pct=inTotal>0?(v/inTotal*100):0;
+    const w=v/iMax*100;
+    return `<div class="bar-item">
+      <div class="bar-top">
+        <span><span class="dot" style="background:${c.color}"></span>${c.emoji} ${c.name}</span>
+        <span>¥${v.toFixed(2)} <span class="pct">${pct.toFixed(0)}%</span></span>
+      </div>
+      <div class="bar-track"><div class="bar-fill" style="width:${w}%;background:${c.color}"></div></div>
+    </div>`;
+  }).join('');
 
   // 当前视图
   if(viewMode==='list') renderList();
