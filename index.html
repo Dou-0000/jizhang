@@ -209,7 +209,7 @@
   .cal .cell.today{outline:2px solid #5fb88a;outline-offset:-2px}
   .cal .cell.sel{background:#5fb88a !important;color:#fff !important}
   .cal .cell .d{font-size:15px;font-weight:600;line-height:1;position:absolute;top:50%;left:50%;transform:translate(-50%,-50%)}
-  .cal .cell .a{font-size:8px;font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap;position:absolute;top:calc(50% + 10px);left:0;right:0;text-align:center;color:#7a8a7e}
+  .cal .cell .a{font-size:8px;font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap;position:absolute;top:calc(50% + 10px);left:0;right:0;text-align:center;color:#fff}
   .cal .cell.has .a{ }
   .cal .cell.sel .a,.cal .cell.sel .d{color:#fff}
   .cal .cell .d .inmark{color:#3a8b5f;font-size:11px;margin-left:1px;font-weight:800;vertical-align:top}
@@ -264,7 +264,7 @@
   .who b{color:var(--ink);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 
   @media(max-width:600px){
-    .cal .cell .a{font-size:8px;top:calc(50% + 6px);color:#7a8a7e}
+    .cal .cell .a{font-size:8px;top:calc(50% + 6px)}
   }
 
   @media(min-width:600px){
@@ -977,7 +977,7 @@ function renderCalendar(){
     const r=Math.sqrt(Math.min(1, amt/maxAmt));   // 0→1，小额被抬高
     const L=90 - r*52;                            // 90% → 38%
     const S=45 + r*25;                           // 45% → 70%，越深越饱和
-    return {bg:`hsl(150 ${S}% ${L}%)`};
+    return {bg:`hsl(150 ${S}% ${L}%)`, fg:'#fff'};
   }
 
   let html='';
@@ -991,7 +991,7 @@ function renderCalendar(){
     if(amt>0) cls.push('has');
     if(dk===today) cls.push('today');
     if(dk===selDayKey) cls.push('sel');
-    const st = amt>0 ? tint(amt) : {bg:''};
+    const st = amt>0 ? tint(amt) : {bg:'',fg:'#fff'};
     const style=amt>0 ? `style="background:${st.bg}"` : '';
     html+=`<div class="${cls.join(' ')}" data-dk="${dk}" ${style}>
       <div class="d">${d}${hasIn?'<span class="inmark">+</span>':''}</div>
