@@ -201,15 +201,15 @@
   .cal .cell{
     aspect-ratio:1/1;border-radius:10px;padding:4px 3px;display:flex;flex-direction:column;
     align-items:center;justify-content:center;background:#f7faf8;cursor:pointer;
-    transition:background .15s;min-width:0;overflow:hidden;
+    transition:background .15s;min-width:0;overflow:hidden;position:relative;
   }
   .cal .cell:active{background:#eaf0ec}
   .cal .cell.out{opacity:.25;cursor:default}
   .cal .cell.has{ }
   .cal .cell.today{outline:2px solid #5fb88a;outline-offset:-2px}
   .cal .cell.sel{background:#5fb88a !important;color:#fff !important}
-  .cal .cell .d{font-size:12px;font-weight:600;line-height:1}
-  .cal .cell .a{font-size:10px;margin-top:2px;font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap}
+  .cal .cell .d{font-size:15px;font-weight:600;line-height:1;position:absolute;top:50%;left:50%;transform:translate(-50%,-50%)}
+  .cal .cell .a{font-size:10px;font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap;position:absolute;top:calc(50% + 10px);left:0;right:0;text-align:center}
   .cal .cell.has .a{ }
   .cal .cell.sel .a,.cal .cell.sel .d{color:#fff}
   .cal .cell .d .inmark{color:#3a8b5f;font-size:11px;margin-left:1px;font-weight:800;vertical-align:top}
@@ -986,7 +986,7 @@ function renderCalendar(){
 
 function fmtAmt(n){ // 紧凑显示：21.2 / 12 / 1050
   n=Math.round(n*100)/100;
-  return n.toFixed(2);
+  return n.toFixed(1);
 }
 
 function renderDayPanel(){
