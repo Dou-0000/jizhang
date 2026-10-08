@@ -505,11 +505,32 @@ async function enterApp(){
     if(localOnly.length) await remoteUpsertAll(localOnly);
     data = cloud.concat(localOnly);
     localStorage.setItem(dataKey(), JSON.stringify(data));
-    const d=new Date(); view={y:d.getFullYear(),m:d.getMonth()};
-    selDayKey=dayKeyOf(d.getFullYear(),d.getMonth(),d.getDate());
+    // 恢复上次查看的日期和月份,没有则用当天
+    loadViewState();
+    if(!selDayKey){
+      const d=new Date();
+      view={y:d.getFullYear(),m:d.getMonth()};
+      selDayKey=dayKeyOf(d.getFullYear(),d.getMonth(),d.getDate());
+    }
     setType('out');
     render();
   }catch(e){ showErr('初始化失败，请重试'); }
+}
+
+function saveViewState(){
+  localStorage.setItem('jizhang_view', JSON.stringify({
+    selDayKey,
+    viewY: view.y,
+    viewM: view.m
+  }));
+}
+function loadViewState(){
+  const saved = localStorage.getItem('jizhang_view');
+  if(saved){
+    const {selDayKey: dk, viewY, viewM} = JSON.parse(saved);
+    if(dk) selDayKey = dk;
+    if(viewY !== undefined && viewM !== undefined) view = {y: viewY, m: viewM};
+  }
 }
 function showAuth(){
   currentUser=null; data=[];
@@ -819,9 +840,11 @@ document.getElementById('recordList').addEventListener('click',e=>{
 });
 document.getElementById('prev').addEventListener('click',()=>{
   view.m--; if(view.m<0){view.m=11;view.y--;} render();
+  saveViewState();
 });
 document.getElementById('next').addEventListener('click',()=>{
   view.m++; if(view.m>11){view.m=0;view.y++;} render();
+  saveViewState();
 });
 document.getElementById('loginBtn').addEventListener('click',doLogin);
 document.getElementById('regBtn').addEventListener('click',doRegister);
@@ -954,8 +977,7 @@ function renderCalendar(){
     const r=Math.sqrt(Math.min(1, amt/maxAmt));   // 0→1，小额被抬高
     const L=90 - r*52;                            // 90% → 38%
     const S=45 + r*25;                           // 45% → 70%，越深越饱和
-    const txt = L<62 ? '#fff' : 'var(--ink)';
-    return {bg:`hsl(150 ${S}% ${L}%)`, fg:txt};
+    return {bg:`hsl(150 ${S}% ${L}%)`};
   }
 
   let html='';
@@ -969,8 +991,8 @@ function renderCalendar(){
     if(amt>0) cls.push('has');
     if(dk===today) cls.push('today');
     if(dk===selDayKey) cls.push('sel');
-    const st = amt>0 ? tint(amt) : {bg:'',fg:''};
-    const style=amt>0 ? `style="background:${st.bg};color:${st.fg}"` : '';
+    const st = amt>0 ? tint(amt) : {bg:''};
+    const style=amt>0 ? `style="background:${st.bg}"` : '';
     html+=`<div class="${cls.join(' ')}" data-dk="${dk}" ${style}>
       <div class="d">${d}${hasIn?'<span class="inmark">+</span>':''}</div>
       <div class="a">${amt>0?'¥'+fmtAmt(amt):(hasIn?'收':'')}</div>
@@ -981,6 +1003,7 @@ function renderCalendar(){
   grid.querySelectorAll('.cell[data-dk]').forEach(el=>{
     el.addEventListener('click',()=>{
       selDayKey=el.dataset.dk;
+      saveViewState();
       renderCalendar();
       renderDayPanel();
       renderRecDay();
