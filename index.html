@@ -26,7 +26,7 @@
     font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
     background:var(--bg);color:var(--ink);
     min-height:100vh;font-size:15px;line-height:1.5;
-    padding-bottom:140px;
+    padding-bottom:200px;
   }
   .wrap{max-width:560px;margin:0 auto;padding:18px 16px 0}
 
@@ -39,7 +39,7 @@
     width:32px;height:32px;border-radius:10px;font-size:16px;cursor:pointer;
     box-shadow:var(--shadow);display:flex;align-items:center;justify-content:center;
   }
-  .month-nav .lbl{font-size:14px;font-weight:600;min-width:72px;text-align:center}
+  .month-nav .lbl{font-size:14px;font-weight:600;text-align:center;white-space:nowrap;flex-shrink:0}
 
   /* 总览卡 */
   .hero{
@@ -266,6 +266,18 @@
   @media(min-width:600px){
     .input-area{border-radius:20px 20px 0 0}
   }
+
+  /* 趋势图 */
+  .trend{background:var(--card);border-radius:18px;padding:16px;box-shadow:var(--shadow);margin-bottom:16px}
+  .trend h3{margin:0 0 12px;font-size:14px;color:var(--sub);font-weight:600}
+  .trend-canvas{height:260px}
+  .trend-range{display:flex;gap:6px;margin-bottom:12px}
+  .trend-range .range-btn{
+    border:1.5px solid var(--line);background:var(--card);color:var(--sub);
+    padding:5px 12px;border-radius:10px;font-size:12px;font-weight:600;cursor:pointer;
+    transition:all .15s;
+  }
+  .trend-range .range-btn.active{background:#5fb88a;color:#fff;border-color:#5fb88a}
 </style>
 </head>
 <body>
@@ -312,6 +324,7 @@
   <div class="seg">
     <button id="segCal" class="active">📅 日历</button>
     <button id="segList">📃 明细</button>
+    <button id="segTrend">📊 趋势</button>
   </div>
 
   <div class="cal" id="calView">
@@ -327,6 +340,11 @@
     <span class="cnt" id="listCnt"></span>
   </div>
   <div id="recordList" style="display:none"></div>
+
+  <div class="trend" id="trendView" style="display:none">
+    <h3>📊 收支趋势</h3>
+    <div class="trend-canvas"><canvas id="trendChart"></canvas></div>
+  </div>
 </div>
 
 <div class="input-area">
@@ -968,7 +986,7 @@ function renderCalendar(){
 
 function fmtAmt(n){ // 紧凑显示：21.2 / 12 / 1050
   n=Math.round(n*100)/100;
-  return n%1===0? ''+n : n.toFixed(1).replace(/0$/,'');
+  return n.toFixed(2);
 }
 
 function renderDayPanel(){
@@ -1027,16 +1045,83 @@ function switchMode(mode){
   viewMode=mode;
   document.getElementById('segCal').classList.toggle('active',mode==='cal');
   document.getElementById('segList').classList.toggle('active',mode==='list');
+  document.getElementById('segTrend').classList.toggle('active',mode==='trend');
   document.getElementById('calView').style.display=mode==='cal'?'block':'none';
   document.getElementById('dayPanel').style.display=mode==='cal'?'block':'none';
   document.getElementById('listHead').style.display=mode==='list'?'flex':'none';
   document.getElementById('recordList').style.display=mode==='list'?'block':'none';
+  document.getElementById('trendView').style.display=mode==='trend'?'block':'none';
   if(mode==='cal'){ renderCalendar(); renderDayPanel(); }
-  else { renderList(); }
+  else if(mode==='list'){ renderList(); }
+  else if(mode==='trend'){ renderTrend(); }
 }
 
 document.getElementById('segCal').addEventListener('click',()=>switchMode('cal'));
 document.getElementById('segList').addEventListener('click',()=>switchMode('list'));
+document.getElementById('segTrend').addEventListener('click',()=>switchMode('trend'));
+
+// ===== 趋势图 =====
+let trendChart=null;
+let chartLoaded=false;
+
+function loadChartJS(){
+  if(chartLoaded) return Promise.resolve();
+  return new Promise((resolve,reject)=>{
+    const s=document.createElement('script');
+    s.src='https://cdn.jsdelivr.net/npm/chart.js';
+    s.onload=()=>{chartLoaded=true;resolve();};
+    s.onerror=reject;
+    document.head.appendChild(s);
+  });
+}
+
+function getCurrentYearMonths(){
+  const year=new Date().getFullYear();
+  const months=[];
+  for(let i=0;i<12;i++){
+    months.push(year+'-'+(i+1));
+  }
+  return months;
+}
+
+function monthSum(key,type){
+  const [y,m]=key.split('-').map(Number);
+  return data.filter(r=>{
+    const d=new Date(r.ts);
+    return d.getFullYear()===y && (d.getMonth()+1)===m && r.type===type;
+  }).reduce((s,r)=>s+r.amt,0);
+}
+
+async function renderTrend(){
+  try{
+    await loadChartJS();
+  }catch(e){
+    document.getElementById('trendChart').parentElement.innerHTML='<div class="empty">图表加载失败，请检查网络</div>';
+    return;
+  }
+  const months=getCurrentYearMonths();
+  const labels=months.map(m=>{const [y,mo]=m.split('-');return (+mo)+'月';});
+  const outData=months.map(m=>monthSum(m,'out'));
+  const inData=months.map(m=>monthSum(m,'in'));
+  if(trendChart) trendChart.destroy();
+  const ctx=document.getElementById('trendChart').getContext('2d');
+  trendChart=new Chart(ctx,{
+    type:'bar',
+    data:{
+      labels,
+      datasets:[
+        {label:'支出',data:outData,backgroundColor:'rgba(224,138,138,0.8)',borderRadius:6},
+        {label:'收入',data:inData,backgroundColor:'rgba(95,184,138,0.8)',borderRadius:6},
+      ]
+    },
+    options:{
+      responsive:true,
+      maintainAspectRatio:false,
+      plugins:{legend:{position:'top',labels:{usePointStyle:true,padding:16}}},
+      scales:{y:{beginAtZero:true,ticks:{callback:v=>'¥'+v,color:'#7a8a7e'},grid:{color:'#eaf0ec'}},x:{grid:{display:false},ticks:{color:'#7a8a7e',font:{size:12}}}}
+    }
+  });
+}
 
 // 会话恢复 + 登录态监听
 let _entering=false;
