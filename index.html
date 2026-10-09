@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
@@ -275,6 +275,7 @@
   .trend{background:var(--card);border-radius:18px;padding:16px;box-shadow:var(--shadow);margin-bottom:16px}
   .trend h3{margin:0 0 12px;font-size:14px;color:var(--sub);font-weight:600}
   .trend-canvas{height:260px}
+  .pie-canvas{height:200px}
   .trend-range{display:flex;gap:6px;margin-bottom:12px}
   .trend-range .range-btn{
     border:1.5px solid var(--line);background:var(--card);color:var(--sub);
@@ -319,7 +320,7 @@
   <div class="seg">
     <button id="segCal" class="active">📅 日历</button>
     <button id="segList">📃 明细</button>
-    <button id="segTrend">📊 趋势</button>
+    <button id="segTrend">📊 统计</button>
   </div>
 
   <div class="cal" id="calView">
@@ -338,18 +339,18 @@
 
   <div class="trend" id="trendView" style="display:none">
     <div class="bars">
-      <h3>📊 收支趋势</h3>
+      <h3>收支趋势</h3>
       <div class="trend-canvas"><canvas id="trendChart"></canvas></div>
     </div>
 
     <div class="bars">
       <h3>支出分类</h3>
-      <div id="barList"></div>
+      <div class="pie-canvas"><canvas id="outPie"></canvas></div>
     </div>
 
     <div class="bars" id="barIncome">
       <h3>收入分类</h3>
-      <div id="barIncomeInner"></div>
+      <div class="pie-canvas"><canvas id="inPie"></canvas></div>
     </div>
   </div>
 </div>
@@ -392,11 +393,11 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script>
 const CATS = [
-  {key:'衣', name:'衣物', color:'var(--c衣)', emoji:'👔'},
-  {key:'食', name:'餐饮', color:'var(--c食)', emoji:'🍱'},
-  {key:'住', name:'居住', color:'var(--c住)', emoji:'🏠'},
-  {key:'行', name:'交通', color:'var(--c行)', emoji:'🚌'},
-  {key:'用', name:'日用', color:'var(--c用)', emoji:'🛒'},
+  {key:'衣', name:'衣物', color:'#f4a6b8', emoji:'👔'},
+  {key:'食', name:'餐饮', color:'#ffb877', emoji:'🍱'},
+  {key:'住', name:'居住', color:'#7db5e8', emoji:'🏠'},
+  {key:'行', name:'交通', color:'#5fc9b6', emoji:'🚌'},
+  {key:'用', name:'日用', color:'#b39ddb', emoji:'🛒'},
 ];
 const CAT_MAP = Object.fromEntries(CATS.map(c=>[c.key,c]));
 
@@ -628,43 +629,8 @@ function render(){
   document.getElementById('cnt').textContent = monthRecs.length;
   document.getElementById('avg').textContent = '¥'+(outTotal/(dCount||1)).toFixed(2);
 
-  // 支出分类条
-  const outRecs = monthRecs.filter(r=>r.type!=='in');
-  const sums = {}; CATS.forEach(c=>sums[c.key]=0);
-  outRecs.forEach(r=>sums[r.cat]=(sums[r.cat]||0)+r.amt);
-  const maxCat = Math.max(0.01, ...CATS.map(c=>sums[c.key]));
-  const barList = document.getElementById('barList');
-  barList.innerHTML = CATS.map(c=>{
-    const v=sums[c.key];
-    const pct = outTotal>0 ? (v/outTotal*100) : 0;
-    const w = (v/maxCat*100);
-    return `<div class="bar-item">
-      <div class="bar-top">
-        <span><span class="dot" style="background:${c.color}"></span>${c.emoji} ${c.name}</span>
-        <span>¥${v.toFixed(2)} <span class="pct">${pct.toFixed(0)}%</span></span>
-      </div>
-      <div class="bar-track"><div class="bar-fill" style="width:${w}%;background:${c.color}"></div></div>
-    </div>`;
-  }).join('');
-
-  // 收入分类条（常驻显示，和支出分类并排）
-  const barInc=document.getElementById('barIncome');
-  const isums={}; INCATS.forEach(c=>isums[c.key]=0);
-  monthRecs.filter(r=>r.type==='in').forEach(r=>isums[r.cat]=(isums[r.cat]||0)+r.amt);
-  const iMax=Math.max(0.01,...INCATS.map(c=>isums[c.key]));
-  barInc.style.display='block';
-  barInc.innerHTML='<h3>收入分类</h3>'+INCATS.map(c=>{
-    const v=isums[c.key];
-    const pct=inTotal>0?(v/inTotal*100):0;
-    const w=v/iMax*100;
-    return `<div class="bar-item">
-      <div class="bar-top">
-        <span><span class="dot" style="background:${c.color}"></span>${c.emoji} ${c.name}</span>
-        <span>¥${v.toFixed(2)} <span class="pct">${pct.toFixed(0)}%</span></span>
-      </div>
-      <div class="bar-track"><div class="bar-fill" style="width:${w}%;background:${c.color}"></div></div>
-    </div>`;
-  }).join('');
+  // 渲染饼图(支出+收入分类)
+  renderPies();
 
   // 当前视图
   if(viewMode==='list') renderList();
@@ -1092,6 +1058,8 @@ document.getElementById('segTrend').addEventListener('click',()=>switchMode('tre
 
 // ===== 趋势图 =====
 let trendChart=null;
+let outPieChart=null;
+let inPieChart=null;
 let chartLoaded=false;
 
 function loadChartJS(){
@@ -1147,10 +1115,93 @@ async function renderTrend(){
     options:{
       responsive:true,
       maintainAspectRatio:false,
-      plugins:{legend:{position:'top',labels:{usePointStyle:true,padding:16}}},
-      scales:{y:{beginAtZero:true,ticks:{callback:v=>'¥'+v,color:'#7a8a7e'},grid:{color:'#eaf0ec'}},x:{grid:{display:false},ticks:{color:'#7a8a7e',font:{size:12}}}}
+      plugins:{legend:{position:'top',labels:{usePointStyle:true,padding:16}},customLabels:{enabled:true}},
+      scales:{y:{beginAtZero:true,ticks:{callback:v=>v===0?'0':(v/10000).toFixed(1),color:'#7a8a7e',font:{size:10},maxTicksLimit:6},grid:{color:'#eaf0ec'}},x:{grid:{display:false},ticks:{color:'#7a8a7e',font:{size:10},maxRotation:0,minRotation:0,autoSkip:false,padding:4}}}
+    },
+    plugins:[{
+      id:'customLabels',
+      afterDatasetsDraw(chart){
+        if(!chart.options.plugins.customLabels.enabled) return;
+        const {ctx} = chart;
+        ctx.save();
+        ctx.font = '10px sans-serif';
+        ctx.fillStyle = '#2b3a2f';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'bottom';
+        chart.data.datasets.forEach((dataset,i)=>{
+          const meta = chart.getDatasetMeta(i);
+          meta.data.forEach((bar,index)=>{
+            const value = dataset.data[index];
+            if(value > 0){
+              const text = (value/10000).toFixed(1);
+              ctx.fillText(text, bar.x, bar.y - 2);
+            }
+          });
+        });
+        ctx.restore();
+      }
+    }]
+  });
+
+  // 渲染饼图(支出+收入分类)
+  renderPies();
+}
+
+function renderPies(){
+  if(!chartLoaded) return;
+  const monthRecs = data.filter(r=>{
+    const d=new Date(r.ts);
+    return d.getFullYear()===view.y && d.getMonth()===view.m;
+  });
+
+  // 支出分类饼图
+  const outRecs = monthRecs.filter(r=>r.type!=='in');
+  const sums = {}; CATS.forEach(c=>sums[c.key]=0);
+  outRecs.forEach(r=>sums[r.cat]=(sums[r.cat]||0)+r.amt);
+  const outData = [];
+  const outLabels = [];
+  const outColors = [];
+  CATS.forEach(c=>{
+    if(sums[c.key]>0){
+      outData.push(sums[c.key]);
+      outLabels.push(c.emoji+' '+c.name);
+      outColors.push(c.color);
     }
   });
+  if(outData.length===0){
+    outData.push(1); outLabels.push('暂无支出'); outColors.push('#e0e0e0');
+  }
+  if(outPieChart) outPieChart.destroy();
+  const outCtx = document.getElementById('outPie');
+  if(outCtx){
+    outPieChart = new Chart(outCtx,{
+      type:'doughnut',
+      data:{labels:outLabels,datasets:[{data:outData,backgroundColor:outColors,borderWidth:0}]},
+      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'right',labels:{usePointStyle:true,pointStyle:'circle',boxWidth:8,boxHeight:8,padding:12,font:{size:11}}}}},
+      plugins:[{id:'percentLabels',afterDatasetsDraw(chart){const {ctx}=chart;chart.data.datasets.forEach((dataset,i)=>{const meta=chart.getDatasetMeta(i);const total=dataset.data.reduce((a,b)=>a+b,0);meta.data.forEach((arc,index)=>{const value=dataset.data[index];const percent=total>0?(value/total*100).toFixed(0)+'%':'';if(percent && value>0){const {x,y}=arc.tooltipPosition();ctx.fillStyle='#fff';ctx.font='bold 11px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(percent,x,y);}});});}}]
+    });
+  }
+
+  // 收入分类饼图
+  const isums = {}; INCATS.forEach(c=>isums[c.key]=0);
+  monthRecs.filter(r=>r.type==='in').forEach(r=>isums[r.cat]=(isums[r.cat]||0)+r.amt);
+  const inData = INCATS.map(c=>isums[c.key]);
+  const inLabels = INCATS.map(c=>c.emoji+' '+c.name);
+  const inColors = INCATS.map(c=>c.color);
+  if(inData.every(v=>v===0)){
+    inData.length=0; inLabels.length=0; inColors.length=0;
+    inData.push(1); inLabels.push('暂无收入'); inColors.push('#e0e0e0');
+  }
+  if(inPieChart) inPieChart.destroy();
+  const inCtx = document.getElementById('inPie');
+  if(inCtx){
+    inPieChart = new Chart(inCtx,{
+      type:'doughnut',
+      data:{labels:inLabels,datasets:[{data:inData,backgroundColor:inColors,borderWidth:0}]},
+      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'right',labels:{usePointStyle:true,pointStyle:'circle',boxWidth:8,boxHeight:8,padding:12,font:{size:11}}}}},
+      plugins:[{id:'percentLabels',afterDatasetsDraw(chart){const {ctx}=chart;chart.data.datasets.forEach((dataset,i)=>{const meta=chart.getDatasetMeta(i);const total=dataset.data.reduce((a,b)=>a+b,0);meta.data.forEach((arc,index)=>{const value=dataset.data[index];const percent=total>0?(value/total*100).toFixed(0)+'%':'';if(percent && value>0){const {x,y}=arc.tooltipPosition();ctx.fillStyle='#fff';ctx.font='bold 11px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(percent,x,y);}});});}}]
+    });
+  }
 }
 
 // 会话恢复 + 登录态监听
