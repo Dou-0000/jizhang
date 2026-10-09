@@ -47,12 +47,12 @@
     color:#fff;border-radius:20px;padding:22px 20px;box-shadow:var(--shadow);
     margin-bottom:18px;
   }
-  .hero .cap{font-size:15px;opacity:.85}
+  .hero .cap{font-size:17px;font-weight:700;opacity:.9;text-align:center}
   .hero .amt{font-size:34px;font-weight:800;margin-top:4px;letter-spacing:.5px}
-  .hero .grid3{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:10px 12px;margin-top:14px;padding-top:4px}
-  .hero .grid3 .l{justify-self:start;text-align:left}
+  .hero .grid3{display:grid;grid-template-columns:auto minmax(80px,1fr) auto;align-items:center;gap:10px 12px;margin-top:14px;padding-top:4px}
+  .hero .grid3 .l{justify-self:start;text-align:left;min-width:140px}
   .hero .grid3 .c{justify-self:center;text-align:center}
-  .hero .grid3 .r{justify-self:end;text-align:right}
+  .hero .grid3 .r{justify-self:end;text-align:right;min-width:140px}
   .hero .grid3 .big{align-self:center}
   .hero .grid3 .foot{font-size:14px;opacity:.9;white-space:nowrap;margin-top:0}
   .hero .lab{font-size:14px;opacity:.85}
@@ -306,7 +306,7 @@
   </div>
 
   <div class="hero">
-    <div class="cap">本月收支</div>
+    <div class="cap" id="heroTitle">本月收支</div>
     <div class="grid3">
       <div class="l big"><div class="lab">支出</div><div class="amt2" id="heroOut">¥0.00</div></div>
       <div class="c big"></div>
@@ -608,6 +608,8 @@ function todayStr(){
 // 渲染
 function render(){
   document.getElementById('monthLbl').textContent = monthStr(view.y,view.m);
+  // 更新总览卡标题
+  document.getElementById('heroTitle').textContent = (view.m+1)+'月收支';
   if(currentUser) renderRecDay();
 
   const monthRecs = data.filter(r=>{
