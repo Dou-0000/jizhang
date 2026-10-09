@@ -47,15 +47,15 @@
     color:#fff;border-radius:20px;padding:22px 20px;box-shadow:var(--shadow);
     margin-bottom:18px;
   }
-  .hero .cap{font-size:17px;font-weight:700;opacity:.9;text-align:center}
+  .hero .cap{font-size:15px;font-weight:700;opacity:.9}
   .hero .amt{font-size:34px;font-weight:800;margin-top:4px;letter-spacing:.5px}
-  .hero .grid3{display:grid;grid-template-columns:auto minmax(80px,1fr) auto;align-items:center;gap:10px 12px;margin-top:14px;padding-top:4px}
+  .hero .grid3{display:grid;grid-template-columns:auto minmax(80px,1fr) auto;align-items:center;gap:10px 12px}
   .hero .grid3 .l{justify-self:start;text-align:left;min-width:140px}
   .hero .grid3 .c{justify-self:center;text-align:center}
   .hero .grid3 .r{justify-self:end;text-align:right;min-width:140px}
   .hero .grid3 .big{align-self:center}
-  .hero .grid3 .foot{font-size:14px;opacity:.9;white-space:nowrap;margin-top:0}
-  .hero .lab{font-size:14px;opacity:.85}
+  .hero .grid3 .foot{font-size:15px;font-weight:700;opacity:.9;white-space:nowrap;margin-top:0}
+  .hero .lab{font-size:15px;font-weight:700;opacity:.85}
   .hero .amt2{font-size:24px;font-weight:800;margin-top:10px;font-variant-numeric:tabular-nums;white-space:nowrap}
   .hero .row span b{font-weight:700}
 
@@ -307,13 +307,15 @@
   </div>
 
   <div class="hero">
-    <div class="cap" id="heroTitle">本月收支</div>
     <div class="grid3">
+      <div class="l cap" id="heroTitle">10 月收支</div>
+      <div class="c cap"></div>
+      <div class="r cap">笔数 <b id="cnt">0</b></div>
       <div class="l big"><div class="lab">支出</div><div class="amt2" id="heroOut">¥0.00</div></div>
       <div class="c big"></div>
       <div class="r big"><div class="lab">收入</div><div class="amt2" id="heroIn">¥0.00</div></div>
       <div class="l foot">结余 <b id="heroNet">¥0.00</b></div>
-      <div class="c foot">笔数 <b id="cnt">0</b></div>
+      <div class="c foot"></div>
       <div class="r foot">日均 <b id="avg">¥0.00</b></div>
     </div>
   </div>
