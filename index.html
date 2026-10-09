@@ -47,15 +47,15 @@
     color:#fff;border-radius:20px;padding:22px 20px;box-shadow:var(--shadow);
     margin-bottom:18px;
   }
-  .hero .cap{font-size:13px;opacity:.85}
+  .hero .cap{font-size:15px;opacity:.85}
   .hero .amt{font-size:34px;font-weight:800;margin-top:4px;letter-spacing:.5px}
   .hero .grid3{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:10px 12px;margin-top:14px;padding-top:4px}
   .hero .grid3 .l{justify-self:start;text-align:left}
   .hero .grid3 .c{justify-self:center;text-align:center}
   .hero .grid3 .r{justify-self:start;text-align:left}
   .hero .grid3 .big{align-self:center}
-  .hero .grid3 .foot{font-size:13px;opacity:.9;white-space:nowrap;margin-top:0}
-  .hero .lab{font-size:12px;opacity:.85}
+  .hero .grid3 .foot{font-size:14px;opacity:.9;white-space:nowrap;margin-top:0}
+  .hero .lab{font-size:14px;opacity:.85}
   .hero .amt2{font-size:24px;font-weight:800;margin-top:10px;font-variant-numeric:tabular-nums;white-space:nowrap}
   .hero .row span b{font-weight:700}
 
@@ -339,11 +339,6 @@
 
   <div class="trend" id="trendView" style="display:none">
     <div class="bars">
-      <h3>收支趋势</h3>
-      <div class="trend-canvas"><canvas id="trendChart"></canvas></div>
-    </div>
-
-    <div class="bars">
       <h3>支出分类</h3>
       <div class="pie-canvas"><canvas id="outPie"></canvas></div>
     </div>
@@ -351,6 +346,11 @@
     <div class="bars" id="barIncome">
       <h3>收入分类</h3>
       <div class="pie-canvas"><canvas id="inPie"></canvas></div>
+    </div>
+
+    <div class="bars">
+      <h3>收支趋势</h3>
+      <div class="trend-canvas"><canvas id="trendChart"></canvas></div>
     </div>
   </div>
 </div>
@@ -1098,7 +1098,7 @@ async function renderTrend(){
     return;
   }
   const months=getCurrentYearMonths();
-  const labels=months.map(m=>{const [y,mo]=m.split('-');return (+mo)+'月';});
+  const labels=months.map(m=>{const [y,mo]=m.split('-');return (+mo).toString();});
   const outData=months.map(m=>monthSum(m,'out'));
   const inData=months.map(m=>monthSum(m,'in'));
   if(trendChart) trendChart.destroy();
@@ -1116,7 +1116,7 @@ async function renderTrend(){
       responsive:true,
       maintainAspectRatio:false,
       plugins:{legend:{position:'top',labels:{usePointStyle:true,padding:16}},customLabels:{enabled:true}},
-      scales:{y:{beginAtZero:true,ticks:{callback:v=>v===0?'0':(v/10000).toFixed(1),color:'#7a8a7e',font:{size:10},maxTicksLimit:6},grid:{color:'#eaf0ec'}},x:{grid:{display:false},ticks:{color:'#7a8a7e',font:{size:10},maxRotation:0,minRotation:0,autoSkip:false,padding:4}}}
+      scales:{y:{beginAtZero:true,ticks:{callback:v=>v===0?'0':(v/10000).toFixed(1),color:'#7a8a7e',font:{size:12},maxTicksLimit:6},grid:{color:'#eaf0ec'}},x:{grid:{display:false},ticks:{color:'#7a8a7e',font:{size:12},maxRotation:0,minRotation:0,autoSkip:false,padding:4}}}
     },
     plugins:[{
       id:'customLabels',
